@@ -1,10 +1,10 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt update
 RUN sed -Ei 's/^# deb-src /deb-src /' /etc/apt/sources.list && \
-    apt-get update && apt-get build-dep -y qt5-default && \
-    apt-get install -y git build-essential python \
+    apt-get update && apt build-dep -y qt6-base && \
+    apt-get install -y git build-essential python3 \
                        libxcb-xinerama0-dev libxcb-util-dev flex bison gperf libicu-dev libxslt-dev ruby \
                        libssl-dev libxcursor-dev libxcomposite-dev libxdamage-dev \
                        libxrandr-dev libdbus-1-dev libfontconfig1-dev libcap-dev libxtst-dev \

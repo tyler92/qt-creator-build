@@ -3,10 +3,10 @@
 set -e
 set -x
 
-QT_VERSION=6.2.2
-QT_CREATOR_VERSION=8.0.0
-LLVM_VERSION=release/14.x
-CLAZY_VERSION=1.10
+QT_VERSION=6.4.2
+QT_CREATOR_VERSION=9.0.2
+LLVM_VERSION=release/15.x
+CLAZY_VERSION=1.11
 
 INSTALL_PREFIX=/opt/qt-creator/$QT_CREATOR_VERSION
 WORKDIR=/tmp/workdir
@@ -52,12 +52,12 @@ cd $WORKDIR && mkdir -p build && cd build
     -prefix $INSTALL_PREFIX \
     -opensource \
     -confirm-license \
-    -skip qtwebengine -skip qt3d -skip qtspeech -skip wayland -skip qtquick3d \
+    -skip qtwebengine -skip qt3d -skip qtspeech -skip qtquick3d -skip qtquick3dphysics -skip qtdoc \
     -nomake examples -nomake tests \
     -silent
 
 echo "Building Qt ..."
-make -j4
+make -j6
 
 echo "Installing Qt ..."
 make install
@@ -85,7 +85,7 @@ cmake \
 #read -p "Press enter to continue"
 
 echo "Building Qt-Creator ..."
-make -j4
+make -j6
 
 echo "Installing Qt-Creator ..."
 make install
