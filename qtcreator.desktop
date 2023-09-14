@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=Qt Creator 9.0.2
+Exec=/opt/qt-creator/9.0.2/bin/qtcreator
+#Terminal=false
+Type=Application
+StartupNotify=true
+GenericName=C++ IDE for developing Qt applications
+#X-KDE-StartupNotify=true
+Icon=/opt/qt-creator/9.0.2/share/icons/hicolor/256x256/apps/QtProject-qtcreator.png
+StartupWMClass=qtcreator
+Categories=Development;IDE;Qt;
+MimeType=text/x-c++src;text/x-c++hdr;text/x-xsrc;application/x-designer;application/vnd.qt.qmakeprofile;application/vnd.qt.xml.resource;
+#X-Desktop-File-Install-Version=0.24

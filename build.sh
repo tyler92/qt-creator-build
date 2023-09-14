@@ -3,16 +3,13 @@
 set -e
 set -x
 
-QT_VERSION=6.4.2
-QT_CREATOR_VERSION=9.0.2
-LLVM_VERSION=release/15.x
+QT_VERSION=6.5.0
+QT_CREATOR_VERSION=10.0.0
+LLVM_VERSION=release/16.x
 CLAZY_VERSION=1.11
 
 INSTALL_PREFIX=/opt/qt-creator/$QT_CREATOR_VERSION
 WORKDIR=/tmp/workdir
-
-SCRIPT=`realpath $0`
-SCRIPTPATH=`dirname $SCRIPT`
 
 mkdir -p $WORKDIR
 cd $WORKDIR
@@ -38,13 +35,13 @@ export PATH=$PATH:$INSTALL_PREFIX/bin
 echo "Build clazy"
 cd $WORKDIR
 git clone https://github.com/KDE/clazy.git -b $CLAZY_VERSION
-cd clazy && cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX . && make -j4 && make install
+cd clazy && git apply /root/clazy.patch && cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX . && make -j4 && make install
 
 # Download and build Qt
 echo "Checkout Qt sources"
 cd $WORKDIR
 git clone https://code.qt.io/qt/qt5.git -b $QT_VERSION --depth 1
-cd qt5 && ./init-repository
+cd qt5 && ./init-repository --module-subset=default,-qtwebengine
 
 echo "Configure Qt"
 cd $WORKDIR && mkdir -p build && cd build
@@ -57,11 +54,11 @@ cd $WORKDIR && mkdir -p build && cd build
     -silent
 
 echo "Building Qt ..."
-make -j6
+cmake --build . --parallel
 
 echo "Installing Qt ..."
-make install
-make clean
+cmake --install
+cmake --build . --target clean
 
 # Download and build Qt-Creator
 echo "Checkout Qt-Creator sources"
@@ -82,13 +79,12 @@ cmake \
     -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=On \
     -DPYTHON_EXECUTABLE=`which python3` ../qt-creator
 
-#read -p "Press enter to continue"
-
 echo "Building Qt-Creator ..."
 make -j6
 
 echo "Installing Qt-Creator ..."
-make install
+cmake --install .
+cmake --build . --target clean
 
 # Collect artifacts
 mkdir -p /root/install

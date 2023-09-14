@@ -1,0 +1,135 @@
+diff --git a/src/PreProcessorVisitor.cpp b/src/PreProcessorVisitor.cpp
+index 5e63a131..08c062ad 100644
+--- a/src/PreProcessorVisitor.cpp
++++ b/src/PreProcessorVisitor.cpp
+@@ -185,7 +185,7 @@ void PreProcessorVisitor::MacroExpands(const Token &MacroNameTok, const MacroDef
+ 
+ void PreProcessorVisitor::InclusionDirective (clang::SourceLocation, const clang::Token &,
+                                               clang::StringRef FileName, bool IsAngled, clang::CharSourceRange FilenameRange,
+-                                              const clang::FileEntry *, clang::StringRef, clang::StringRef,
++                                              clang::Optional<clang::FileEntryRef>, clang::StringRef, clang::StringRef,
+                                               const clang::Module *, clang::SrcMgr::CharacteristicKind)
+ {
+    if (m_ci.getPreprocessor().isInPrimaryFile() && !clazy::endsWith(FileName.str(), ".moc")) {
+diff --git a/src/PreProcessorVisitor.h b/src/PreProcessorVisitor.h
+index dc80ff36..6410cab7 100644
+--- a/src/PreProcessorVisitor.h
++++ b/src/PreProcessorVisitor.h
+@@ -71,7 +71,7 @@ protected:
+                       clang::SourceRange range, const clang::MacroArgs *) override;
+     void InclusionDirective (clang::SourceLocation HashLoc, const clang::Token &IncludeTok,
+                              clang::StringRef FileName, bool IsAngled, clang::CharSourceRange FilenameRange,
+-                             const clang::FileEntry *File, clang::StringRef SearchPath, clang::StringRef RelativePath,
++                             clang::Optional<clang::FileEntryRef> File, clang::StringRef SearchPath, clang::StringRef RelativePath,
+                              const clang::Module *Imported, clang::SrcMgr::CharacteristicKind FileType) override;
+ private:
+     std::string getTokenSpelling(const clang::MacroDefinition &) const;
+diff --git a/src/Utils.cpp b/src/Utils.cpp
+index 3cdf7876..2dd01ec9 100644
+--- a/src/Utils.cpp
++++ b/src/Utils.cpp
+@@ -670,7 +670,7 @@ const CXXRecordDecl *Utils::recordForMemberCall(CXXMemberCallExpr *call, string
+ bool Utils::isAscii(StringLiteral *lt)
+ {
+     // 'é' for some reason has isAscii() == true, so also call containsNonAsciiOrNull
+-    return lt && lt->isAscii() && !lt->containsNonAsciiOrNull();
++    return lt && !lt->containsNonAsciiOrNull();
+ }
+ 
+ bool Utils::isInDerefExpression(Stmt *s, ParentMap *map)
+diff --git a/src/checkbase.cpp b/src/checkbase.cpp
+index f5936dfd..90fd4031 100644
+--- a/src/checkbase.cpp
++++ b/src/checkbase.cpp
+@@ -105,7 +105,7 @@ void ClazyPreprocessorCallbacks::MacroDefined(const Token &macroNameTok, const M
+ }
+ 
+ void ClazyPreprocessorCallbacks::InclusionDirective(clang::SourceLocation HashLoc, const clang::Token &IncludeTok, clang::StringRef FileName, bool IsAngled,
+-                                                    clang::CharSourceRange FilenameRange, const clang::FileEntry *File, clang::StringRef SearchPath,
++                                                    clang::CharSourceRange FilenameRange, clang::Optional<clang::FileEntryRef> File, clang::StringRef SearchPath,
+                                                     clang::StringRef RelativePath, const clang::Module *Imported, clang::SrcMgr::CharacteristicKind FileType)
+ {
+     check->VisitInclusionDirective(HashLoc, IncludeTok, FileName, IsAngled, FilenameRange, File, SearchPath, RelativePath, Imported, FileType);
+@@ -182,7 +182,7 @@ void CheckBase::VisitEndif(SourceLocation, SourceLocation)
+ }
+ 
+ void CheckBase::VisitInclusionDirective(clang::SourceLocation , const clang::Token &, clang::StringRef , bool ,
+-                        clang::CharSourceRange , const clang::FileEntry *, clang::StringRef ,
++                        clang::CharSourceRange , clang::Optional<clang::FileEntryRef>, clang::StringRef ,
+                         clang::StringRef , const clang::Module *, clang::SrcMgr::CharacteristicKind )
+ {
+     // Overriden in derived classes
+diff --git a/src/checkbase.h b/src/checkbase.h
+index c5db2daf..f9f753b9 100644
+--- a/src/checkbase.h
++++ b/src/checkbase.h
+@@ -91,7 +91,7 @@ public:
+     void Else(clang::SourceLocation loc, clang::SourceLocation ifLoc) override;
+     void Endif(clang::SourceLocation loc, clang::SourceLocation ifLoc) override;
+     void InclusionDirective(clang::SourceLocation HashLoc, const clang::Token &IncludeTok, clang::StringRef FileName, bool IsAngled,
+-                            clang::CharSourceRange FilenameRange, const clang::FileEntry *File, clang::StringRef SearchPath,
++                            clang::CharSourceRange FilenameRange, clang::Optional<clang::FileEntryRef> File, clang::StringRef SearchPath,
+                             clang::StringRef RelativePath, const clang::Module *Imported, clang::SrcMgr::CharacteristicKind FileType) override;
+ private:
+     CheckBase *const check;
+@@ -151,7 +151,7 @@ protected:
+     virtual void VisitElse(clang::SourceLocation loc, clang::SourceLocation ifLoc);
+     virtual void VisitEndif(clang::SourceLocation loc, clang::SourceLocation ifLoc);
+     virtual void VisitInclusionDirective(clang::SourceLocation HashLoc, const clang::Token &IncludeTok, clang::StringRef FileName, bool IsAngled,
+-                            clang::CharSourceRange FilenameRange, const clang::FileEntry *File, clang::StringRef SearchPath,
++                            clang::CharSourceRange FilenameRange, clang::Optional<clang::FileEntryRef> File, clang::StringRef SearchPath,
+                             clang::StringRef RelativePath, const clang::Module *Imported, clang::SrcMgr::CharacteristicKind FileType);
+ 
+     void enablePreProcessorCallbacks();
+diff --git a/src/checks/manuallevel/qt6-fwd-fixes.cpp b/src/checks/manuallevel/qt6-fwd-fixes.cpp
+index 83bf81ee..42fb6fdb 100644
+--- a/src/checks/manuallevel/qt6-fwd-fixes.cpp
++++ b/src/checks/manuallevel/qt6-fwd-fixes.cpp
+@@ -166,7 +166,7 @@ void Qt6FwdFixes::VisitDecl(clang::Decl *decl)
+ }
+ 
+ void Qt6FwdFixes::VisitInclusionDirective(clang::SourceLocation HashLoc, const clang::Token &IncludeTok, clang::StringRef FileName, bool IsAngled,
+-                        clang::CharSourceRange FilenameRange, const clang::FileEntry *File, clang::StringRef SearchPath,
++                        clang::CharSourceRange FilenameRange, clang::Optional<clang::FileEntryRef> File, clang::StringRef SearchPath,
+                         clang::StringRef RelativePath, const clang::Module *Imported, clang::SrcMgr::CharacteristicKind FileType)
+ {
+     auto current_file = m_sm.getFilename(HashLoc);
+diff --git a/src/checks/manuallevel/qt6-fwd-fixes.h b/src/checks/manuallevel/qt6-fwd-fixes.h
+index 37b59d95..48f6e64f 100644
+--- a/src/checks/manuallevel/qt6-fwd-fixes.h
++++ b/src/checks/manuallevel/qt6-fwd-fixes.h
+@@ -47,7 +47,7 @@ public:
+     explicit Qt6FwdFixes(const std::string &name, ClazyContext *context);
+     void VisitDecl(clang::Decl *decl) override;
+     void VisitInclusionDirective(clang::SourceLocation HashLoc, const clang::Token &IncludeTok, clang::StringRef FileName, bool IsAngled,
+-                            clang::CharSourceRange FilenameRange, const clang::FileEntry *File, clang::StringRef SearchPath,
++                            clang::CharSourceRange FilenameRange, clang::Optional<clang::FileEntryRef> File, clang::StringRef SearchPath,
+                             clang::StringRef RelativePath, const clang::Module *Imported, clang::SrcMgr::CharacteristicKind FileType) override;
+     bool m_including_qcontainerfwd = false;
+     std::set<clang::StringRef> m_qcontainerfwd_included_in_files;
+diff --git a/src/checks/manuallevel/qt6-header-fixes.cpp b/src/checks/manuallevel/qt6-header-fixes.cpp
+index d458b77c..16b12520 100644
+--- a/src/checks/manuallevel/qt6-header-fixes.cpp
++++ b/src/checks/manuallevel/qt6-header-fixes.cpp
+@@ -270,7 +270,7 @@ Qt6HeaderFixes::Qt6HeaderFixes(const std::string &name, ClazyContext *context)
+ }
+ 
+ void Qt6HeaderFixes::VisitInclusionDirective(clang::SourceLocation HashLoc, const clang::Token &IncludeTok, clang::StringRef FileName, bool IsAngled,
+-                        clang::CharSourceRange FilenameRange, const clang::FileEntry *File, clang::StringRef SearchPath,
++                        clang::CharSourceRange FilenameRange, clang::Optional<clang::FileEntryRef> File, clang::StringRef SearchPath,
+                         clang::StringRef RelativePath, const clang::Module *Imported, clang::SrcMgr::CharacteristicKind FileType)
+ {
+     if (shouldIgnoreFile(HashLoc))
+diff --git a/src/checks/manuallevel/qt6-header-fixes.h b/src/checks/manuallevel/qt6-header-fixes.h
+index ae09f7ad..e6aa5a87 100644
+--- a/src/checks/manuallevel/qt6-header-fixes.h
++++ b/src/checks/manuallevel/qt6-header-fixes.h
+@@ -46,7 +46,7 @@ class Qt6HeaderFixes
+ public:
+     explicit Qt6HeaderFixes(const std::string &name, ClazyContext *context);
+     void VisitInclusionDirective(clang::SourceLocation HashLoc, const clang::Token &IncludeTok, clang::StringRef FileName, bool IsAngled,
+-                            clang::CharSourceRange FilenameRange, const clang::FileEntry *File, clang::StringRef SearchPath,
++                            clang::CharSourceRange FilenameRange, clang::Optional<clang::FileEntryRef> File, clang::StringRef SearchPath,
+                             clang::StringRef RelativePath, const clang::Module *Imported, clang::SrcMgr::CharacteristicKind FileType) override;
+ 
+ };
