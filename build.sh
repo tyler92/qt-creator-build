@@ -1,12 +1,12 @@
 #!/bin/bash
 
 #set -e
-trap 'echo OW' err
+trap 'echo EXIT && exit' err
 set -x
 
 QT_VERSION=6.5.2
-QT_CREATOR_VERSION=11.0.2
-LLVM_VERSION=release/16.x
+QT_CREATOR_VERSION=11.0.3
+LLVM_VERSION=llvmorg-17.0.2
 CLAZY_VERSION=1.11
 JOBS=10
 
@@ -25,7 +25,7 @@ cd cmake
 echo "Build LLVM"
 cd $WORKDIR
 git clone https://github.com/llvm/llvm-project.git -b $LLVM_VERSION --depth 1
-mkdir llvm-project/build && cd llvm-project/build
+mkdir -p llvm-project/build && cd llvm-project/build
 cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX \
       -DCMAKE_BUILD_TYPE=Release \
       -DLLVM_ENABLE_RTTI=ON \
@@ -34,10 +34,10 @@ cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX \
 make -j$JOBS && make install && make clean
 export PATH=$PATH:$INSTALL_PREFIX/bin
 
-echo "Build clazy"
-cd $WORKDIR
-git clone https://github.com/KDE/clazy.git -b $CLAZY_VERSION
-cd clazy && git apply /root/clazy.patch && cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX . && make -j$JOBS && make install
+#echo "Build clazy"
+#cd $WORKDIR
+#git clone https://github.com/KDE/clazy.git -b $CLAZY_VERSION
+#cd clazy && git apply /root/clazy.patch && cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX . && make -j$JOBS && make install
 
 # Download and build Qt
 echo "Checkout Qt sources"
@@ -59,7 +59,7 @@ echo "Building Qt ..."
 cmake --build . --parallel
 
 echo "Installing Qt ..."
-cmake --install
+cmake --build . --target install
 cmake --build . --target clean
 
 # Download and build Qt-Creator
@@ -70,7 +70,7 @@ git clone https://code.qt.io/qt-creator/qt-creator.git -b v$QT_CREATOR_VERSION -
 cd qt-creator
 git submodule update --init --recursive
 
-mkdir ../build-creator
+mkdir -p ../build-creator
 cd ../build-creator
 
 cmake \
@@ -85,7 +85,7 @@ echo "Building Qt-Creator ..."
 make -j$JOBS
 
 echo "Installing Qt-Creator ..."
-cmake --install .
+cmake --build . --target install
 cmake --build . --target clean
 
 # Collect artifacts
