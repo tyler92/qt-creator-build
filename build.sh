@@ -1,12 +1,14 @@
 #!/bin/bash
 
-set -e
+#set -e
+trap 'echo OW' err
 set -x
 
-QT_VERSION=6.5.0
-QT_CREATOR_VERSION=10.0.0
+QT_VERSION=6.5.2
+QT_CREATOR_VERSION=11.0.2
 LLVM_VERSION=release/16.x
 CLAZY_VERSION=1.11
+JOBS=10
 
 INSTALL_PREFIX=/opt/qt-creator/$QT_CREATOR_VERSION
 WORKDIR=/tmp/workdir
@@ -17,7 +19,7 @@ cd $WORKDIR
 # CMake checkout and build
 git clone https://gitlab.kitware.com/cmake/cmake.git --depth 1
 cd cmake
-./bootstrap && make -j7 && make install && make clean
+./bootstrap && make -j$JOBS && make install && make clean
 
 # LLVM download and extract
 echo "Build LLVM"
@@ -29,13 +31,13 @@ cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX \
       -DLLVM_ENABLE_RTTI=ON \
       -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;compiler-rt" \
       ../llvm
-make -j7 && make install && make clean
+make -j$JOBS && make install && make clean
 export PATH=$PATH:$INSTALL_PREFIX/bin
 
 echo "Build clazy"
 cd $WORKDIR
 git clone https://github.com/KDE/clazy.git -b $CLAZY_VERSION
-cd clazy && git apply /root/clazy.patch && cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX . && make -j4 && make install
+cd clazy && git apply /root/clazy.patch && cmake -DCMAKE_INSTALL_PREFIX=$INSTALL_PREFIX . && make -j$JOBS && make install
 
 # Download and build Qt
 echo "Checkout Qt sources"
@@ -80,7 +82,7 @@ cmake \
     -DPYTHON_EXECUTABLE=`which python3` ../qt-creator
 
 echo "Building Qt-Creator ..."
-make -j6
+make -j$JOBS
 
 echo "Installing Qt-Creator ..."
 cmake --install .
