@@ -4,9 +4,9 @@
 trap 'echo EXIT && exit' err
 set -x
 
-QT_VERSION=6.5.2
-QT_CREATOR_VERSION=12.0.1
-LLVM_VERSION=llvmorg-17.0.6
+QT_VERSION=6.6.3
+QT_CREATOR_VERSION=13.0.0
+LLVM_VERSION=llvmorg-18.1.3
 CLAZY_VERSION=1.11
 JOBS=10
 
@@ -51,7 +51,7 @@ cd $WORKDIR && mkdir -p build && cd build
     -prefix $INSTALL_PREFIX \
     -opensource \
     -confirm-license \
-    -skip qtwebengine -skip qt3d -skip qtspeech -skip qtquick3d -skip qtquick3dphysics -skip qtdoc \
+    -skip qtwebengine -skip qt3d -skip qtspeech -skip qtquick3d -skip qtgraphs -skip qtquick3dphysics -skip qtdoc \
     -nomake examples -nomake tests \
     -silent
 
